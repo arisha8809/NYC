@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NYC</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    /* General styling */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: black;
+      /* Dark background */
+      color: black;
+      /* White text for better contrast */
+    }
+
+    header {
+      padding: 10px;
+      text-align: center;
+      background-color: black;
+      color: #fff;
+    }
+
+    .video-size {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 60vh;
+      width: 100%;
+    }
+
+    /* Centered map container */
+    .map-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 75vh;
+      padding: 50px;
+      position: relative;
+      /* To make the gramophone overlap this section */
+    }
+
+    /* Map styling */
+    #map {
+      height: 100%;
+      width: 100%;
+      border: 1px solid #ccc;
+      /* Optional border for better visibility */
+      z-index: 1;
+    }
+
+    /* Search bar styling */
+    #search {
+      padding: 8px;
+      width: 60%;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin-top: 5%;
+      margin-left: 350px;
+    }
+
+    .leaflet-popup-content h3 {
+      font-size: 1.25rem;
+      margin: 0;
+      color: black;
+      /* White text in popups */
+    }
+
+    .leaflet-popup-content p {
+      font-size: 1rem;
+      color: #3e3a3a;
+      /* Lighter gray for contrast */
+    }
+
+    .leaflet-popup-content strong {
+      color: #0073e6;
+    }
+
+    /* Video Scrolling Containers */
+    .filmstrip {
+      --background-light-gray: rgba(211, 211, 211, 0.6);
+      --background-dark-gray: rgba(169, 169, 169, 0.6);
+      --size: 12px;
+      background-image:
+        linear-gradient(to right, var(--background-light-gray) var(--size), transparent var(--size)),
+        linear-gradient(to bottom, var(--background-dark-gray) var(--size), transparent var(--size)),
+        linear-gradient(to right, var(--background-light-gray) var(--size), transparent var(--size)),
+        linear-gradient(to bottom, var(--background-dark-gray) var(--size), transparent var(--size)),
+        linear-gradient(to bottom, transparent var(--size), var(--background-light-gray) var(--size));
+      background-size: calc(var(--size) * 2) var(--size), calc(var(--size) * 2) var(--size), calc(var(--size) * 2) var(--size), calc(var(--size) * 2) var(--size), 100% calc(100% - var(--size) * 3);
+      background-repeat: repeat-x;
+      background-position: 0 var(--size), top left, 0 calc(100% - var(--size)), bottom left, 0 var(--size);
+      padding: calc(var(--size) * 3) calc(var(--size) * 2.5);
+      box-sizing: border-box;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+      height: 18vh;
+      /* Height of the filmstrip */
+      width: 100%;
+      color: white;
+      border: 5px solid var(--background-dark-gray);
+      border-radius: 10px;
+    }
+
+    .video-container {
+      display: flex;
+      width: fit-content;
+      animation-name: loop;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+      animation-duration: 1000s;
+      white-space: nowrap;
+    }
+
+    .video-container video {
+      width: 15vw;
+      height: auto;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 2px solid var(--background-dark-gray);
+      border-radius: 5px;
+      margin-right: 5px;
+    }
+
+    .video-container2 {
+      display: flex;
+      width: fit-content;
+      animation-name: loop2;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+      animation-duration: 1000s;
+      white-space: nowrap;
+    }
+
+    .video-container2 video {
+      width: 15vw;
+      height: auto;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 2px solid var(--background-dark-gray);
+      border-radius: 5px;
+      margin-right: 5px;
+    }
+
+    @keyframes loop {
+      0% {
+        transform: translateX(0);
+      }
+
+      100% {
+        transform: translateX(-100%);
+      }
+    }
+
+    @keyframes loop2 {
+      0% {
+        transform: translateX(0);
+      }
+
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    /* Gramophone GIF and Music Control */
+    #gramophone {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      width:150px;
+      height: 200px;
+      cursor: pointer;
+      opacity: 0.9;
+      z-index: 2;
+      /* Ensure it's visible above the map */
+    }
+
+    #gramophone:hover {
+      opacity: 1;
+    }
+
+    /* Responsive design */
+    @media (max-width: 600px) {
+      #map {
+        height: 400px;
+      }
+
+      #search {
+        width: 90%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="filmstrip">
+    <div class="video-container loop-slider">
+      <video src="videos/video1.mp4" autoplay muted loop></video>
+      <video src="videos/video2.mp4" autoplay muted loop></video>
+      <video src="videos/video3.mp4" autoplay muted loop></video>
+      <video src="videos/video4.mp4" autoplay muted loop></video>
+      <video src="videos/video5.mp4" autoplay muted loop></video>
+      <video src="videos/video6.mp4" autoplay muted loop></video>
+
+    </div>
+  </div>
+  <header>
+    <h1 style="text-align: center; color: white; font-size: 13.4pc; margin-top: 0pt; margin-bottom: 0pt;">NEW YORK CITY</h1>
+  </header>
+  <div class="filmstrip">
+    <div class="video-container loop-slider">
+      <video src="videos/video6.mp4" autoplay muted loop></video>
+      <video src="videos/video5.mp4" autoplay muted loop></video>
+      <video src="videos/video4.mp4" autoplay muted loop></video>
+      <video src="videos/video3.mp4" autoplay muted loop></video>
+      <video src="videos/video2.mp4" autoplay muted loop></video>
+      <video src="videos/video1.mp4" autoplay muted loop></video>
+    </div>
+  </div>
+
+  <input type="text" id="search" placeholder="Search for movies, songs, or books..." />
+
+  <!-- Map Section -->
+  <div class="map-container">
+    <div id="map"></div>
+    <!-- Gramophone GIF (inside map container to ensure overlap) -->
+    <img id="gramophone" src="images/gramophone.gif" alt="Gramophone" />
+  </div>
+
+  <!-- Audio for the Gramophone -->
+  <audio id="gramophone-audio" src="audio/Autumn In New York.mp3" preload="auto"></audio>
+
+  <script>
+    // Duplicate video elements for continuous scrolling
+    const sliders = document.querySelectorAll('.video-container, .video-container2');
+
+    sliders.forEach(container => {
+      const videos = Array.from(container.children);
+      for (let i = 0; i < 50; i++) {
+        videos.forEach(video => {
+          container.appendChild(video.cloneNode(true));
+        });
+      }
+    });
+
+    // Initialize the Leaflet map
+    var map = L.map('map').setView([40.7128, -74.0060], 12);
+
+    // Add dark layer
+    var darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    });
+    darkLayer.addTo(map);
+
+    
+        // NYC locations with related movie, music, and book data
+        const locations = [
+    {
+        name: "Central Park",
+        coords: [40.785091, -73.968285],
+        movies: ["Home Alone 2", "Avengers: Endgame"],
+        songs: ["Central Park West by John Coltrane"],
+        books: ["The Catcher in the Rye by J.D. Salinger"],
+        trivia: "Central Park has been featured in over 350 movies."
+    },
+    {
+        name: "Central Perk Café (Warner Bros. Set)",
+        coords: [34.1486, -118.3384], // Burbank, California (Set location)
+        movies: ["Friends"],
+        songs: [],
+        books: [],
+        trivia: "Central Perk is the iconic coffee shop where the Friends group frequently hung out. Although not in NYC, it’s forever tied to New York's cafe culture in the show."
+    },
+    {
+        name: "Brooklyn Bridge",
+        coords: [40.7061, -73.9969],
+        movies: ["Once Upon a Time in America", "Gangs of New York"],
+        songs: ["Brooklyn Bridge by Frank Sinatra"],
+        books: ["A Tree Grows in Brooklyn by Betty Smith"],
+        trivia: "The Brooklyn Bridge was completed in 1883 and is an icon of American cinema."
+    },
+    {
+        name: "Empire State Building",
+        coords: [40.748817, -73.985428],
+        movies: ["King Kong", "Sleepless in Seattle"],
+        songs: ["Empire State of Mind by Jay-Z"],
+        books: ["The Amazing Adventures of Kavalier & Clay by Michael Chabon"],
+        trivia: "The building has been a backdrop in over 250 films."
+    },
+    {
+        name: "Statue of Liberty",
+        coords: [40.689247, -74.044502],
+        movies: ["X-Men", "The Day After Tomorrow"],
+        songs: ["American Land by Bruce Springsteen"],
+        books: ["Liberty: The Statue and the American Dream by Leslie Allen"],
+        trivia: "Gifted by France in 1886, it has appeared in numerous apocalyptic films."
+    },
+    {
+        name: "Times Square",
+        coords: [40.758896, -73.985130],
+        movies: ["Spider-Man", "Vanilla Sky"],
+        songs: ["Times Square by Marianne Faithfull"],
+        books: ["The Devil Wears Prada by Lauren Weisberger"],
+        trivia: "Over 50 million tourists visit Times Square each year."
+    },
+    {
+        name: "Broadway",
+        coords: [40.759011, -73.984472],
+        movies: ["Birdman", "West Side Story"],
+        songs: ["Broadway by The Goo Goo Dolls"],
+        books: ["A Chorus Line and the Musicals of Michael Bennett by Ken Mandelbaum"],
+        trivia: "Broadway theaters host more than 40 new productions every year."
+    },
+    {
+        name: "Rockefeller Center",
+        coords: [40.7587, -73.9787],
+        movies: ["Elf", "30 Rock"],
+        songs: ["Christmas in Rockefeller Center by Various Artists"],
+        books: ["Rockefeller Center: A Dreamer's Enterprise by Daniel Okrent"],
+        trivia: "The Rockefeller Center ice rink has been featured in countless holiday films."
+    },
+    {
+        name: "Fifth Avenue",
+        coords: [40.7743, -73.9654],
+        movies: ["Breakfast at Tiffany's", "The Great Gatsby"],
+        songs: ["Fifth Avenue by City of the Sun"],
+        books: ["Fifth Avenue, 5 A.M. by Sam Wasson"],
+        trivia: "Known for luxury shopping, it's often seen in fashion-centric films."
+    },
+    {
+        name: "Wall Street",
+        coords: [40.7074, -74.0113],
+        movies: ["The Wolf of Wall Street", "Wall Street"],
+        songs: ["Wall Street Shuffle by 10cc"],
+        books: ["Too Big to Fail by Andrew Ross Sorkin"],
+        trivia: "It's the heart of America's financial district, often seen in business dramas."
+    },
+    {
+        name: "Grand Central Terminal",
+        coords: [40.7527, -73.9772],
+        movies: ["Madagascar", "The Avengers"],
+        songs: ["Grand Central Station by Mary Chapin Carpenter"],
+        books: ["Grand Central: How a Train Station Transformed America by Sam Roberts"],
+        trivia: "Opened in 1913, it's appeared in numerous films and is a national historic landmark."
+    },
+    {
+        name: "The Plaza Hotel",
+        coords: [40.7644, -73.9745],
+        movies: ["Home Alone 2", "The Great Gatsby"],
+        songs: ["Hotel Plaza by Franz Ferdinand"],
+        books: ["Inside the Plaza: An Intimate Portrait of the Iconic Hotel by Julie Satow"],
+        trivia: "One of NYC's most iconic hotels, known for hosting lavish movie scenes."
+    },
+    {
+        name: "Washington Square Park",
+        coords: [40.7308, -73.9973],
+        movies: ["I Am Legend", "When Harry Met Sally"],
+        songs: ["Washington Square by The Village Stompers"],
+        books: ["Washington Square by Henry James"],
+        trivia: "The arch and fountain are iconic symbols of Greenwich Village."
+    },
+    {
+        name: "Chrysler Building",
+        coords: [40.7516, -73.9755],
+        movies: ["Men in Black 3", "Spider-Man"],
+        songs: ["Chrysler Building by Emile Haynie"],
+        books: ["The Chrysler Building: Creating a New York Icon Day by Day by David Stravitz"],
+        trivia: "Once the tallest building in the world, it's often seen in alien invasion films."
+    },
+    {
+        name: "The Met Cloisters",
+        coords: [40.8649, -73.9315],
+        movies: ["The Thomas Crown Affair", "New York Stories"],
+        songs: ["Cloisters by James Ferraro"],
+        books: ["The Cloisters by Katy Hays"],
+        trivia: "The museum's medieval architecture and gardens make it a cinematic favorite."
+    },
+    {
+        name: "Yankee Stadium",
+        coords: [40.8296, -73.9262],
+        movies: ["42", "Angels in the Outfield"],
+        songs: ["Yankee Stadium by Tom Waits"],
+        books: ["The House That Ruth Built by Robert Weintraub"],
+        trivia: "The stadium has hosted several historic sports and cultural events."
+    },
+    {
+        name: "Flatiron Building",
+        coords: [40.7411, -73.9897],
+        movies: ["Spider-Man", "The Devil Wears Prada"],
+        songs: ["Flatiron by The Ebony Hillbillies"],
+        books: ["The Flatiron: The New York Landmark and the Incomparable City That Arose With It by Alice Sparberg Alexiou"],
+        trivia: "The unique triangular shape of the building makes it one of NYC's most photographed landmarks."
+    }
+];
+
+
+        // Function to add map markers for each location
+        locations.forEach(location => {
+            const marker = L.marker(location.coords).addTo(map);
+            
+            // Add a popup for each marker
+            marker.bindPopup(`
+                <h3>${location.name}</h3>
+                <strong>Movies:</strong> ${location.movies.join(', ')}<br>
+                <strong>Songs:</strong> ${location.songs.join(', ')}<br>
+                <strong>Books:</strong> ${location.books.join(', ')}<br>
+                <p>${location.trivia}</p>
+            `);
+
+            // Zoom in on the marker with smooth animation when the popup is opened
+            marker.on('click', function() {
+                // Smoothly zoom in to level 15 over 1 second (1000 milliseconds)
+                map.setView(location.coords, 15, { animate: true });
+                setTimeout(() => {
+                    map.setZoom(15);
+                }, 1000);
+            });
+        });
+
+        // Search functionality
+        document.getElementById('search').addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase();
+
+            locations.forEach(location => {
+                if (location.name.toLowerCase().includes(query) ||
+                    location.movies.some(movie => movie.toLowerCase().includes(query)) ||
+                    location.songs.some(song => song.toLowerCase().includes(query)) ||
+                    location.books.some(book => book.toLowerCase().includes(query))) {
+                    
+                    // Smoothly zoom in to level 15 over 1 second (1000 milliseconds)
+                    map.setView(location.coords, 15, { animate: true });
+                    setTimeout(() => {
+                        map.setZoom(15);
+                    }, 2500);
+                }
+            });
+        });
+    // Control music on gramophone hover and click
+    const gramophone = document.getElementById('gramophone');
+    const gramophoneAudio = document.getElementById('gramophone-audio');
+
+    gramophone.addEventListener('mouseover', () => {
+      gramophoneAudio.play();
+    });
+
+    gramophone.addEventListener('click', () => {
+      gramophoneAudio.pause();
+    });
+  </script>
+</body>
+
+</html>  
